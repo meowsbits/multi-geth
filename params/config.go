@@ -70,6 +70,15 @@ var (
 		PetersburgBlock:     big.NewInt(7280000),
 		IstanbulBlock:       big.NewInt(9069000),
 		Ethash:              new(EthashConfig),
+		BlockRewardSchedule: BlockRewardScheduleT{
+			new(big.Int).SetUint64(uint64(0x0)):      new(big.Int).SetUint64(uint64(0x4563918244f40000)),
+			new(big.Int).SetUint64(uint64(0x42ae50)): new(big.Int).SetUint64(uint64(0x29a2241af62c0000)),
+			new(big.Int).SetUint64(uint64(0x6f1580)): new(big.Int).SetUint64(uint64(0x1bc16d674ec80000)),
+		},
+		DifficultyBombDelays: DifficultyBombDelaysT{
+			new(big.Int).SetUint64(uint64(0x42ae50)): new(big.Int).SetUint64(uint64(0x2dc6c0)),
+			new(big.Int).SetUint64(uint64(0x6f1580)): new(big.Int).SetUint64(uint64(0x1e8480)),
+		},
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -271,8 +280,12 @@ var (
 
 		new(EthashConfig), // Ethash
 		nil,               // Clique
+
 		nil,
 		nil,
+
+		DifficultyBombDelaysT{},
+		BlockRewardScheduleT{},
 	}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
@@ -338,6 +351,9 @@ var (
 		},
 		nil,
 		nil,
+
+		DifficultyBombDelaysT{},
+		BlockRewardScheduleT{},
 	}
 
 	// TestChainConfig is used for tests.
@@ -394,8 +410,12 @@ var (
 
 		new(EthashConfig), // Ethash
 		nil,               // Clique
+
 		nil,
 		nil,
+
+		DifficultyBombDelaysT{},
+		BlockRewardScheduleT{},
 	}
 
 	// TestRules are all rules from TestChainConfig initialized at 0.
@@ -573,6 +593,38 @@ type ChainConfig struct {
 
 type DifficultyBombDelaysT map[*big.Int]*big.Int
 type BlockRewardScheduleT map[*big.Int]*big.Int
+
+var FrontierBlockReward = big.NewInt(5e+18) // Block reward in wei for successfully mining a block
+var EIP649FBlockReward = big.NewInt(3e+18)  // Block reward in wei for successfully mining a block upward from Byzantium
+var EIP1234FBlockReward = big.NewInt(2e+18) // Block reward in wei for successfully mining a block upward from Constantinople
+func (c *ChainConfig) EthashBlockReward(n *big.Int) *big.Int {
+	// if c.Ethash == nil {
+	// 	panic("non ethash config called EthashBlockReward")
+	// }
+	// Select the correct block reward based on chain progression
+	blockReward := FrontierBlockReward
+	if n == nil {
+		return blockReward
+	}
+	if c.IsEIP649F(n) {
+		blockReward = EIP649FBlockReward
+	}
+	if c.IsEIP1234F(n) {
+		blockReward = EIP1234FBlockReward
+	}
+	if c.IsSocial(n) {
+		blockReward = SocialBlockReward
+	}
+	if c.IsEthersocial(n) {
+		blockReward = EthersocialBlockReward
+	}
+	for activation, reward := range c.BlockRewardSchedule {
+		if isForked(activation, n) {
+			blockReward = reward
+		}
+	}
+	return blockReward
+}
 
 // EthashConfig is the consensus engine configs for proof-of-work based sealing.
 type EthashConfig struct{}

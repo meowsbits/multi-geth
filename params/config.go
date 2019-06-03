@@ -18,11 +18,17 @@ package params
 
 import (
 	"encoding/binary"
+
+	"encoding/json"
+
 	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/ethereum/go-ethereum/crypto"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -265,7 +271,7 @@ var (
 
 		big.NewInt(0), // PetersburgBlock
 		big.NewInt(0), // IstanbulBlock
-		nil, // EWASMBlock
+		nil,           // EWASMBlock
 
 		nil, // ECIP1010PauseBlock
 		nil, // ECIP1010Length
@@ -284,8 +290,15 @@ var (
 		nil,
 		nil,
 
-		DifficultyBombDelaysT{},
-		BlockRewardScheduleT{},
+		DifficultyBombDelaysT{
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x2dc6c0)),
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x1e8480)),
+		},
+		BlockRewardScheduleT{
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x4563918244f40000)),
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x29a2241af62c0000)),
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x1bc16d674ec80000)),
+		},
 	}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
@@ -414,8 +427,15 @@ var (
 		nil,
 		nil,
 
-		DifficultyBombDelaysT{},
-		BlockRewardScheduleT{},
+		DifficultyBombDelaysT{
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x2dc6c0)),
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x1e8480)),
+		},
+		BlockRewardScheduleT{
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x4563918244f40000)),
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x29a2241af62c0000)),
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x1bc16d674ec80000)),
+		},
 	}
 
 	// TestRules are all rules from TestChainConfig initialized at 0.
@@ -583,16 +603,76 @@ type ChainConfig struct {
 	// Various consensus engines
 	Ethash *EthashConfig `json:"ethash,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
-	
+
 	TrustedCheckpoint       *TrustedCheckpoint      `json:"trustedCheckpoint"`
 	TrustedCheckpointOracle *CheckpointOracleConfig `json:"trustedCheckpointOracle"`
 
-	DifficultyBombDelays DifficultyBombDelaysT `json:"difficultyBombDelays"`
-	BlockRewardSchedule  BlockRewardScheduleT  `json:"blockReward"`
+	DifficultyBombDelays DifficultyBombDelaysT `json:"difficultyBombDelays,omitempty"`
+	BlockRewardSchedule  BlockRewardScheduleT  `json:"blockReward,omitempty"`
 }
 
 type DifficultyBombDelaysT map[*big.Int]*big.Int
+
+func (dbd *DifficultyBombDelaysT) UnmarshalJSON(input []byte) error {
+	var n = make(map[string]string)
+	if err := json.Unmarshal(input, &n); err != nil {
+		return err
+	}
+	d := DifficultyBombDelaysT{}
+	for k, v := range n {
+		kk, err := hexutil.DecodeBig(k)
+		if err != nil {
+			return err
+		}
+		vv, err := hexutil.DecodeBig(v)
+		if err != nil {
+			return err
+		}
+		d[kk] = vv
+	}
+	*dbd = d
+	return nil
+}
+func (dbd DifficultyBombDelaysT) MarshalJSON() ([]byte, error) {
+	var m = make(map[string]string)
+	for k, v := range dbd {
+		kk, vv := hexutil.EncodeBig(k), hexutil.EncodeBig(v)
+		m[kk] = vv
+	}
+	return json.Marshal(m)
+}
+
 type BlockRewardScheduleT map[*big.Int]*big.Int
+
+func (brs *BlockRewardScheduleT) UnmarshalJSON(input []byte) error {
+	var n = make(map[string]string)
+	if err := json.Unmarshal(input, &n); err != nil {
+		return err
+	}
+	d := BlockRewardScheduleT{}
+	for k, v := range n {
+		kk, err := hexutil.DecodeBig(k)
+		if err != nil {
+			return err
+		}
+		vv, err := hexutil.DecodeBig(v)
+		if err != nil {
+			return err
+		}
+		d[kk] = vv
+	}
+	*brs = d
+	return nil
+}
+
+func (brs BlockRewardScheduleT) MarshalJSON() ([]byte, error) {
+	var m = make(map[string]string)
+	for k, v := range brs {
+		kk, vv := hexutil.EncodeBig(k), hexutil.EncodeBig(v)
+		m[kk] = vv
+	}
+	return json.Marshal(m)
+}
 
 var FrontierBlockReward = big.NewInt(5e+18) // Block reward in wei for successfully mining a block
 var EIP649FBlockReward = big.NewInt(3e+18)  // Block reward in wei for successfully mining a block upward from Byzantium
@@ -603,7 +683,7 @@ func (c *ChainConfig) EthashBlockReward(n *big.Int) *big.Int {
 	// }
 	// Select the correct block reward based on chain progression
 	blockReward := FrontierBlockReward
-	if n == nil {
+	if c == nil || n == nil {
 		return blockReward
 	}
 	if c.IsEIP649F(n) {
@@ -1061,9 +1141,9 @@ type Rules struct {
 	IsEIP145F, IsEIP1014F, IsEIP1052F, IsEIP1283F, IsEIP1234F bool
 	/// Istanbul
 	IsEIP152F, IsEIP1108F, IsEIP1344F, IsEIP1884F, IsEIP2028F, IsEIP2200F bool
-	IsPetersburg, IsIstanbul                                  bool
-	IsBombDisposal, IsSocial, IsEthersocial, IsECIP1010       bool
-	IsMCIP0, IsMCIP3, IsMCIP8                                 bool
+	IsPetersburg, IsIstanbul                                              bool
+	IsBombDisposal, IsSocial, IsEthersocial, IsECIP1010                   bool
+	IsMCIP0, IsMCIP3, IsMCIP8                                             bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -1100,7 +1180,7 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsEIP1234F: c.IsEIP1234F(num),
 		IsEIP1283F: c.IsEIP1283F(num),
 
-		IsEIP152F: c.IsEIP152F(num),
+		IsEIP152F:  c.IsEIP152F(num),
 		IsEIP1108F: c.IsEIP1108F(num),
 		IsEIP1344F: c.IsEIP1344F(num),
 		IsEIP1884F: c.IsEIP1884F(num),

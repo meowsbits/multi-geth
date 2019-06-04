@@ -70,8 +70,6 @@ var (
 		EIP158Block:         big.NewInt(2675000),
 		ByzantiumBlock:      big.NewInt(4370000),
 		DisposalBlock:       nil,
-		SocialBlock:         nil,
-		EthersocialBlock:    nil,
 		ConstantinopleBlock: big.NewInt(7280000),
 		PetersburgBlock:     big.NewInt(7280000),
 		IstanbulBlock:       big.NewInt(9069000),
@@ -119,8 +117,6 @@ var (
 		EIP158Block:         big.NewInt(10),
 		ByzantiumBlock:      big.NewInt(1700000),
 		DisposalBlock:       nil,
-		SocialBlock:         nil,
-		EthersocialBlock:    nil,
 		ConstantinopleBlock: big.NewInt(4230000),
 		PetersburgBlock:     big.NewInt(4939394),
 		IstanbulBlock:       big.NewInt(6485846),
@@ -159,8 +155,6 @@ var (
 		EIP158Block:         big.NewInt(3),
 		ByzantiumBlock:      big.NewInt(1035301),
 		DisposalBlock:       nil,
-		SocialBlock:         nil,
-		EthersocialBlock:    nil,
 		ConstantinopleBlock: big.NewInt(3660663),
 		PetersburgBlock:     big.NewInt(4321234),
 		IstanbulBlock:       big.NewInt(5435345),
@@ -277,8 +271,6 @@ var (
 		nil, // ECIP1010Length
 		nil, // ECIP1017EraRounds
 		nil, // DisposalBlock
-		nil, // SocialBlock
-		nil, // EthersocialBlock
 
 		nil, // Musicoin MCIP0Block UBI
 		nil, // Musicoin MCIP3Block UBI
@@ -350,8 +342,6 @@ var (
 		nil, // ECIP1010Length
 		nil, // ECIP1017EraRounds
 		nil, // DisposalBlock
-		nil, // SocialBlock
-		nil, // EthersocialBlock
 
 		nil, // Musicoin MCIP0Block UBI
 		nil, // Musicoin MCIP3Block UBI
@@ -414,8 +404,6 @@ var (
 		nil, // ECIP1010Length
 		nil, // ECIP1017EraRounds
 		nil, // DisposalBlock
-		nil, // SocialBlock
-		nil, // EthersocialBlock
 
 		nil, // Musicoin MCIP0Block UBI
 		nil, // Musicoin MCIP3Block UBI
@@ -593,8 +581,6 @@ type ChainConfig struct {
 	ECIP1010Length     *big.Int `json:"ecip1010Length,omitempty"`     // ECIP1010 length
 	ECIP1017EraRounds  *big.Int `json:"ecip1017EraRounds,omitempty"`  // ECIP1017 era rounds
 	DisposalBlock      *big.Int `json:"disposalBlock,omitempty"`      // Bomb disposal HF block
-	SocialBlock        *big.Int `json:"socialBlock,omitempty"`        // Ethereum Social Reward block
-	EthersocialBlock   *big.Int `json:"ethersocialBlock,omitempty"`   // Ethersocial Reward block
 
 	MCIP0Block *big.Int `json:"mcip0Block,omitempty"` // Musicoin default block; no MCIP, just denotes chain pref
 	MCIP3Block *big.Int `json:"mcip3Block,omitempty"` // Musicoin 'UBI Fork' block
@@ -692,12 +678,6 @@ func (c *ChainConfig) EthashBlockReward(n *big.Int) *big.Int {
 	if c.IsEIP1234F(n) {
 		blockReward = EIP1234FBlockReward
 	}
-	if c.IsSocial(n) {
-		blockReward = SocialBlockReward
-	}
-	if c.IsEthersocial(n) {
-		blockReward = EthersocialBlockReward
-	}
 	for activation, reward := range c.BlockRewardSchedule {
 		if isForked(activation, n) {
 			blockReward = reward
@@ -736,6 +716,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
+
 	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Disposal: %v Social: %v Ethersocial: %v ECIP1017: %v EIP160: %v ECIP1010PauseBlock: %v ECIP1010Length: %v Constantinople: %v ConstantinopleFix: %v Istanbul: %v Engine: %v}",
 		c.ChainID,
 		c.HomesteadBlock,
@@ -746,8 +727,6 @@ func (c *ChainConfig) String() string {
 		c.EIP158Block,
 		c.ByzantiumBlock,
 		c.DisposalBlock,
-		c.SocialBlock,
-		c.EthersocialBlock,
 		c.ECIP1017EraRounds,
 		c.EIP160FBlock,
 		c.ECIP1010PauseBlock,
@@ -1191,8 +1170,6 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsIstanbul:   c.IsIstanbul(num),
 
 		IsBombDisposal: c.IsBombDisposal(num),
-		IsSocial:       c.IsSocial(num),
-		IsEthersocial:  c.IsEthersocial(num),
 		IsECIP1010:     c.IsECIP1010(num),
 
 		IsMCIP0: c.IsMCIP0(num),

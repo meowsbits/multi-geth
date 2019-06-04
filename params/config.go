@@ -283,12 +283,9 @@ var (
 		nil,
 
 		DifficultyBombDelaysT{
-			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x2dc6c0)),
 			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x1e8480)),
 		},
 		BlockRewardScheduleT{
-			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x4563918244f40000)),
-			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x29a2241af62c0000)),
 			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x1bc16d674ec80000)),
 		},
 	}
@@ -416,12 +413,9 @@ var (
 		nil,
 
 		DifficultyBombDelaysT{
-			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x2dc6c0)),
 			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x1e8480)),
 		},
 		BlockRewardScheduleT{
-			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x4563918244f40000)),
-			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x29a2241af62c0000)),
 			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x1bc16d674ec80000)),
 		},
 	}

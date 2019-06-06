@@ -121,6 +121,15 @@ var (
 		PetersburgBlock:     big.NewInt(4939394),
 		IstanbulBlock:       big.NewInt(6485846),
 		Ethash:              new(EthashConfig),
+		BlockRewardSchedule: BlockRewardScheduleT{
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x4563918244f40000)),
+			big.NewInt(1700000):                 new(big.Int).SetUint64(uint64(0x29a2241af62c0000)),
+			big.NewInt(4230000):                 new(big.Int).SetUint64(uint64(0x1bc16d674ec80000)),
+		},
+		DifficultyBombDelays: DifficultyBombDelaysT{
+			big.NewInt(1700000): new(big.Int).SetUint64(uint64(0x2dc6c0)),
+			big.NewInt(4230000): new(big.Int).SetUint64(uint64(0x1e8480)),
+		},
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Ropsten test network.
@@ -162,6 +171,15 @@ var (
 			Period: 15,
 			Epoch:  30000,
 		},
+		BlockRewardSchedule: BlockRewardScheduleT{
+			new(big.Int).SetUint64(uint64(0x0)): new(big.Int).SetUint64(uint64(0x4563918244f40000)),
+			big.NewInt(1035301):                 new(big.Int).SetUint64(uint64(0x29a2241af62c0000)),
+			big.NewInt(3660663):                 new(big.Int).SetUint64(uint64(0x1bc16d674ec80000)),
+		},
+		DifficultyBombDelays: DifficultyBombDelaysT{
+			big.NewInt(1035301): new(big.Int).SetUint64(uint64(0x2dc6c0)),
+			big.NewInt(3660663): new(big.Int).SetUint64(uint64(0x1e8480)),
+		},
 	}
 
 	// RinkebyTrustedCheckpoint contains the light client trusted checkpoint for the Rinkeby test network.
@@ -199,6 +217,12 @@ var (
 		Clique: &CliqueConfig{
 			Period: 15,
 			Epoch:  30000,
+		},
+		BlockRewardSchedule: BlockRewardScheduleT{
+			big.NewInt(0): new(big.Int).SetUint64(uint64(0x1bc16d674ec80000)),
+		},
+		DifficultyBombDelays: DifficultyBombDelaysT{
+			big.NewInt(0): new(big.Int).SetUint64(uint64(0x1e8480)),
 		},
 	}
 
@@ -351,9 +375,12 @@ var (
 		},
 		nil,
 		nil,
-
-		DifficultyBombDelaysT{},
-		BlockRewardScheduleT{},
+		DifficultyBombDelaysT{
+			big.NewInt(0): new(big.Int).SetUint64(uint64(0x1e8480)),
+		},
+		BlockRewardScheduleT{
+			big.NewInt(0): new(big.Int).SetUint64(uint64(0x1bc16d674ec80000)),
+		},
 	}
 
 	// TestChainConfig is used for tests.
@@ -655,8 +682,6 @@ func (brs BlockRewardScheduleT) MarshalJSON() ([]byte, error) {
 }
 
 var FrontierBlockReward = big.NewInt(5e+18) // Block reward in wei for successfully mining a block
-var EIP649FBlockReward = big.NewInt(3e+18)  // Block reward in wei for successfully mining a block upward from Byzantium
-var EIP1234FBlockReward = big.NewInt(2e+18) // Block reward in wei for successfully mining a block upward from Constantinople
 func (c *ChainConfig) EthashBlockReward(n *big.Int) *big.Int {
 	// if c.Ethash == nil {
 	// 	panic("non ethash config called EthashBlockReward")
@@ -665,12 +690,6 @@ func (c *ChainConfig) EthashBlockReward(n *big.Int) *big.Int {
 	blockReward := FrontierBlockReward
 	if c == nil || n == nil {
 		return blockReward
-	}
-	if c.IsEIP649F(n) {
-		blockReward = EIP649FBlockReward
-	}
-	if c.IsEIP1234F(n) {
-		blockReward = EIP1234FBlockReward
 	}
 	for activation, reward := range c.BlockRewardSchedule {
 		if isForked(activation, n) {
@@ -821,11 +840,6 @@ func (c *ChainConfig) IsEIP214F(num *big.Int) bool {
 	return isForked(c.ByzantiumBlock, num) || isForked(c.EIP214FBlock, num)
 }
 
-// IsEIP649F returns whether num is equal to or greater than the Byzantium or EIP649 block.
-func (c *ChainConfig) IsEIP649F(num *big.Int) bool {
-	return isForked(c.ByzantiumBlock, num) || isForked(c.EIP649FBlock, num)
-}
-
 // IsEIP658F returns whether num is equal to or greater than the Byzantium or EIP658 block.
 func (c *ChainConfig) IsEIP658F(num *big.Int) bool {
 	return isForked(c.ByzantiumBlock, num) || isForked(c.EIP658FBlock, num)
@@ -844,11 +858,6 @@ func (c *ChainConfig) IsEIP1014F(num *big.Int) bool {
 // IsEIP1052F returns whether num is equal to or greater than the Constantinople or EIP1052 block.
 func (c *ChainConfig) IsEIP1052F(num *big.Int) bool {
 	return isForked(c.ConstantinopleBlock, num) || isForked(c.EIP1052FBlock, num)
-}
-
-// IsEIP1234F returns whether num is equal to or greater than the Constantinople or EIP1234 block.
-func (c *ChainConfig) IsEIP1234F(num *big.Int) bool {
-	return isForked(c.ConstantinopleBlock, num) || isForked(c.EIP1234FBlock, num)
 }
 
 // IsEIP1283F returns whether num is equal to or greater than the Constantinople or EIP1283 block.
@@ -987,13 +996,11 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 		{"EIP212F", c.EIP212FBlock, newcfg.EIP212FBlock},
 		{"EIP213F", c.EIP213FBlock, newcfg.EIP213FBlock},
 		{"EIP214F", c.EIP214FBlock, newcfg.EIP214FBlock},
-		{"EIP649F", c.EIP649FBlock, newcfg.EIP649FBlock},
 		{"EIP658F", c.EIP658FBlock, newcfg.EIP658FBlock},
 		{"Constantinople", c.ConstantinopleBlock, newcfg.ConstantinopleBlock},
 		{"EIP145F", c.EIP145FBlock, newcfg.EIP145FBlock},
 		{"EIP1014F", c.EIP1014FBlock, newcfg.EIP1014FBlock},
 		{"EIP1052F", c.EIP1052FBlock, newcfg.EIP1052FBlock},
-		{"EIP1234F", c.EIP1234FBlock, newcfg.EIP1234FBlock},
 		{"EIP1283F", c.EIP1283FBlock, newcfg.EIP1283FBlock},
 		{"EWASM", c.EWASMBlock, newcfg.EWASMBlock},
 	} {
@@ -1109,7 +1116,7 @@ type Rules struct {
 	// EIP158HF - Tangerine Whistle
 	IsEIP160F, IsEIP161F, IsEIP170F bool
 	// Byzantium
-	IsEIP100F, IsEIP140F, IsEIP198F, IsEIP211F, IsEIP212F, IsEIP213F, IsEIP214F, IsEIP649F, IsEIP658F bool
+	IsEIP100F, IsEIP140F, IsEIP198F, IsEIP211F, IsEIP212F, IsEIP213F, IsEIP214F, IsEIP658F bool
 	// Constantinople
 	IsEIP145F, IsEIP1014F, IsEIP1052F, IsEIP1283F, IsEIP1234F bool
 	/// Istanbul
@@ -1144,13 +1151,11 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsEIP212F: c.IsEIP212F(num),
 		IsEIP213F: c.IsEIP213F(num),
 		IsEIP214F: c.IsEIP214F(num),
-		IsEIP649F: c.IsEIP649F(num),
 		IsEIP658F: c.IsEIP658F(num),
 
 		IsEIP145F:  c.IsEIP145F(num),
 		IsEIP1014F: c.IsEIP1014F(num),
 		IsEIP1052F: c.IsEIP1052F(num),
-		IsEIP1234F: c.IsEIP1234F(num),
 		IsEIP1283F: c.IsEIP1283F(num),
 
 		IsEIP152F:  c.IsEIP152F(num),

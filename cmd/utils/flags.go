@@ -155,6 +155,10 @@ var (
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby, 6=Kotti)",
 		Value: eth.DefaultConfig.NetworkId,
 	}
+	ChainspecParity = cli.StringFlag{
+		Name:  "chainspec.parity",
+		Usage: "Read chain configuration from Parity chainspec format",
+	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
 		Usage: "Ropsten network: pre-configured proof-of-work test network",
@@ -820,6 +824,15 @@ func MakeDataDir(ctx *cli.Context) string {
 		if ctx.GlobalBool(GoerliFlag.Name) {
 			return filepath.Join(path, "goerli")
 		}
+		if ctx.GlobalString(ChainspecParity.Name) != "" {
+			bname := filepath.Base(ctx.GlobalString(ChainspecParity.Name))
+			path = filepath.Join(path, bname)
+			path = strings.TrimSuffix(path, ".json")
+			return path
+			// Want, eg:
+			// ~/.ethereum/kensington/
+		}
+
 		return path
 	}
 	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
@@ -1310,6 +1323,13 @@ func setDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "kotti")
 	case ctx.GlobalBool(GoerliFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "goerli")
+	case ctx.GlobalString(ChainspecParity.Name) != "":
+		bname := filepath.Base(ctx.GlobalString(ChainspecParity.Name))
+		path := filepath.Join(node.DefaultDataDir(), bname)
+		path = strings.TrimSuffix(path, ".json")
+		cfg.DataDir = path
+		// Want, eg:
+		// ~/.ethereum/kensington/
 	}
 }
 
@@ -1499,7 +1519,8 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag, GoerliFlag)
+
+	CheckExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag, GoerliFlag,  KottiFlag, ClassicFlag, SocialFlag, MixFlag, EthersocialFlag, MusicoinFlag, ChainspecParity)
 	CheckExclusive(ctx, LightLegacyServFlag, LightServeFlag, SyncModeFlag, "light")
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 
@@ -1781,6 +1802,12 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultKottiGenesisBlock()
 	case ctx.GlobalBool(GoerliFlag.Name):
 		genesis = core.DefaultGoerliGenesisBlock()
+	case ctx.GlobalString(ChainspecParity.Name) != "":
+		var err error
+		genesis, err = core.ReadInGenesisBlockFromParityChainSpec(ctx.GlobalString(ChainspecParity.Name))
+		if err != nil {
+			Fatalf("failed to read parity chainspec: err=%v", err)
+		}
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}

@@ -396,6 +396,20 @@ func DefaultGoerliGenesisBlock() *Genesis {
 	}
 }
 
+func ReadInBootnodesFromParityChainspec(fpath string) ([]string, error) {
+	b, err := ioutil.ReadFile(fpath)
+	if err != nil {
+		return nil, err
+	}
+	pc := xspecparity.Config{}
+	err = json.Unmarshal(b, &pc)
+	if err != nil {
+		return nil, err
+	}
+
+	return pc.Nodes, nil
+}
+
 func ReadInGenesisBlockFromParityChainSpec(fpath string) (*Genesis, error) {
 	b, err := ioutil.ReadFile(fpath)
 	if err != nil {
@@ -407,7 +421,7 @@ func ReadInGenesisBlockFromParityChainSpec(fpath string) (*Genesis, error) {
 		return nil, err
 	}
 
-	gen := pc.ToMultiGethGenesis()
+	gen := ParityConfigToMultiGethGenesis(&pc)
 	if gen == nil {
 		return gen, errors.New("failure to parse parity chainspec -> go-ethereum genesis")
 	}

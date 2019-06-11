@@ -158,6 +158,7 @@ var (
 	ChainspecParityFlag = cli.StringFlag{
 		Name:  "chainspec.parity",
 		Usage: "Read chain configuration from Parity chainspec format",
+		Value: "",
 	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
@@ -1615,6 +1616,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.Genesis = core.DefaultMixGenesisBlock()
 	case ctx.GlobalBool(GoerliFlag.Name):
 		cfg.Genesis = core.DefaultGoerliGenesisBlock()
+	case ctx.GlobalIsSet(ChainspecParityFlag.Name):
+		var err error
+		cfg.Genesis, err = core.ReadInGenesisBlockFromParityChainSpec(ctx.GlobalString(ChainspecParityFlag.Name))
+		if err != nil {
+			Fatalf("failed to read parity chainspec: err=%v", err)
+		}
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		// Create new developer account or reuse existing one
 		var (
@@ -1808,7 +1815,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultKottiGenesisBlock()
 	case ctx.GlobalBool(GoerliFlag.Name):
 		genesis = core.DefaultGoerliGenesisBlock()
-	case ctx.GlobalString(ChainspecParityFlag.Name) != "":
+	case ctx.GlobalIsSet(ChainspecParityFlag.Name):
 		var err error
 		genesis, err = core.ReadInGenesisBlockFromParityChainSpec(ctx.GlobalString(ChainspecParityFlag.Name))
 		if err != nil {

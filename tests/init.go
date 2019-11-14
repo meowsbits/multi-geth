@@ -76,7 +76,7 @@ var Forks = map[string]*params.ChainConfig{
 	"Byzantium":            ByzantiumChainspec,
 	"Constantinople":       ConstantinopleChainspec,
 	"ConstantinopleFix":    ConstantinopleFixChainspec,
-	"EIP158ToByzantiumAt5": EIP158ToByzantiumAt5Chainspec,
+
 
 	"Istanbul": {
 		ChainID:             big.NewInt(1),
@@ -91,6 +91,7 @@ var Forks = map[string]*params.ChainConfig{
 		IstanbulBlock:       big.NewInt(0),
 	},
 
+	"EIP158ToByzantiumAt5": EIP158ToByzantiumAt5Chainspec,
 	"FrontierToHomesteadAt5": {
 		ChainID:        big.NewInt(1),
 		HomesteadBlock: big.NewInt(5),

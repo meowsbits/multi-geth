@@ -130,16 +130,6 @@ var Forks = map[string]*params.ChainConfig{
 			new(big.Int).SetUint64(uint64(5)): new(big.Int).SetUint64(uint64(0x1e8480)),
 		},
 	},
-	"ByzantiumToConstantinopleFixAt5": {
-		ChainID:             big.NewInt(1),
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(5),
-		PetersburgBlock:     big.NewInt(5),
-	},
 	"ConstantinopleFixToIstanbulAt5": {
 		ChainID:             big.NewInt(1),
 		HomesteadBlock:      big.NewInt(0),

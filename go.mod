@@ -16,10 +16,12 @@ require (
 	github.com/docker/docker v0.0.0-20180625184442-8e610b2b55bf
 	github.com/edsrzf/mmap-go v0.0.0-20160512033002-935e0e8a636c
 	github.com/elastic/gosigar v0.0.0-20180330100440-37f05ff46ffa
+	github.com/etclabscore/eth-x-chainspec v0.0.0-20190611204439-47e34b489a9b
 	github.com/fatih/color v1.6.0
 	github.com/fjl/memsize v0.0.0-20180418122429-ca190fb6ffbc
 	github.com/gballet/go-libpcsclite v0.0.0-20190403181518-312b5175032f
 	github.com/go-stack/stack v1.8.0
+	github.com/go-test/deep v1.0.4
 	github.com/golang/protobuf v1.3.1
 	github.com/golang/snappy v0.0.1
 	github.com/golangci/golangci-lint v1.18.0 // indirect

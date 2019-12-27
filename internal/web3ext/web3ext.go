@@ -601,6 +601,12 @@ web3._extend({
 			name: 'getHashrate',
 			call: 'miner_getHashrate'
 		}),
+		new web3._extend.Method({
+			name: 'setGasLimitHard',
+			call: 'miner_setGasLimitHard',
+			params: 1,
+			inputFormatter: [null]
+		}),
 	],
 	properties: []
 });

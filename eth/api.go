@@ -154,6 +154,10 @@ func (api *PrivateMinerAPI) GetHashrate() uint64 {
 	return api.e.miner.HashRate()
 }
 
+func (api *PrivateMinerAPI) SetGasLimitHard(i uint64) {
+	api.e.Miner().SetGasLimitHard(i)
+}
+
 // PrivateAdminAPI is the collection of Ethereum full node-related APIs
 // exposed over the private admin endpoint.
 type PrivateAdminAPI struct {

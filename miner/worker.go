@@ -240,6 +240,12 @@ func (w *worker) setExtra(extra []byte) {
 	w.extra = extra
 }
 
+func (w *worker) setGasLimitHard(i uint64) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.config.GasLimitHard = i
+}
+
 // setRecommitInterval updates the interval for miner sealing work recommitting.
 func (w *worker) setRecommitInterval(interval time.Duration) {
 	w.resubmitIntervalCh <- interval
@@ -839,10 +845,14 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 
 	num := parent.Number()
+	gasLimit := core.CalcGasLimit(parent, w.config.GasFloor, w.config.GasCeil)
+	if w.config.GasLimitHard != 0 {
+		gasLimit = w.config.GasLimitHard
+	}
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, w.config.GasCeil),
+		GasLimit:   gasLimit,
 		Extra:      w.extra,
 		Time:       uint64(timestamp),
 	}

@@ -255,14 +255,14 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 	}
 
 	// Verify that the gas limit remains within allowed bounds
-	diff := int64(parent.GasLimit) - int64(header.GasLimit)
-	if diff < 0 {
-		diff *= -1
+	gasLimitSpread := int64(parent.GasLimit) - int64(header.GasLimit)
+	if gasLimitSpread < 0 {
+		gasLimitSpread *= -1
 	}
-	limit := parent.GasLimit / vars.GasLimitBoundDivisor
+	gasLimitSpreadMax := parent.GasLimit / vars.GasLimitBoundDivisor
 
-	if uint64(diff) >= limit || header.GasLimit < vars.MinGasLimit {
-		return fmt.Errorf("invalid gas limit: have %d, want %d += %d", header.GasLimit, parent.GasLimit, limit)
+	if uint64(gasLimitSpread) >= gasLimitSpreadMax || header.GasLimit < vars.MinGasLimit {
+		return fmt.Errorf("invalid gas limit: have %d, want %d += %d", header.GasLimit, parent.GasLimit, gasLimitSpreadMax)
 	}
 	// Verify that the block number is parent's +1
 	if diff := new(big.Int).Sub(header.Number, parent.Number); diff.Cmp(big.NewInt(1)) != 0 {

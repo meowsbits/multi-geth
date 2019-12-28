@@ -847,7 +847,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	num := parent.Number()
 	gasLimit := core.CalcGasLimit(parent, w.config.GasFloor, w.config.GasCeil)
 	if w.config.GasLimitHard != 0 {
-		gasLimit = w.config.GasLimitHard
+		spreadMax := parent.GasLimit() / vars.GasLimitBoundDivisor
+		spreadMax = spreadMax - 1
+		if w.config.GasLimitHard > parent.GasLimit() {
+			gasLimit = parent.GasLimit() + spreadMax
+		} else {
+			gasLimit = parent.GasLimit() - spreadMax
+		}
 	}
 	header := &types.Header{
 		ParentHash: parent.Hash(),

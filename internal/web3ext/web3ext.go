@@ -33,7 +33,21 @@ var Modules = map[string]string{
 	"swarmfs":    SwarmfsJs,
 	"txpool":     TxpoolJs,
 	"les":        LESJs,
+	"chainconfig": ChainConfigJs,
 }
+
+const ChainConfigJs = `
+web3._extend({
+	property: 'chainconfig',
+	methods: [
+		new web3._extend.Method({
+			name: 'getAccountStartNonce',
+			call: 'chainconfig_getAccountStartNonce',
+			params: 0,
+		}),
+	]
+});
+`
 
 const ChequebookJs = `
 web3._extend({

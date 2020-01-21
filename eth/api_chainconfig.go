@@ -16,7 +16,7 @@ func NewPrivateChainConfigAPI(e *Ethereum) *PrivateChainConfigAPI {
 }
 
 func (api *PrivateChainConfigAPI) GetAccountStartNonce() *uint64 {
-	panic("implement me")
+	return api.e.blockchain.Config().GetAccountStartNonce()
 }
 
 func (api *PrivateChainConfigAPI) SetAccountStartNonce(n *uint64) error {

@@ -37,6 +37,18 @@ import (
 	"github.com/go-test/deep"
 )
 
+func TestDiscover(t *testing.T) {
+	tc := params.ClassicChainConfig
+	items := confp.Discover(tc)
+	if len(items) == 0 {
+		t.Error("no items")
+	}
+	for _, it := range items {
+		//fmt.Println(it.AsWeb3Ext())
+		t.Log(spew.Sdump(it))
+	}
+}
+
 func TestConstantinopleEquivalence(t *testing.T) {
 	conf := tests.Forks["Constantinople"]
 	pspec := &parity.ParityChainSpec{}

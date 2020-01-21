@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/params/types/ctypes"
+	"github.com/iancoleman/strcase"
 )
 
 // ConfigCompatError is raised if the locally-stored blockchain is initialised with a
@@ -93,6 +94,84 @@ func IsEmpty(anything interface{}) bool {
 		return true
 	}
 	return reflect.DeepEqual(anything, reflect.Zero(reflect.TypeOf(anything)).Interface())
+}
+
+type DiscoverMethodParameterItem struct {
+	Index int
+	Name string
+	Kind string
+}
+type DiscoverMethodItem struct {
+	Base string
+	Name string
+	NumParams int
+	NumReturns int
+	Params []DiscoverMethodParameterItem
+	Returns []DiscoverMethodParameterItem
+}
+
+func (i DiscoverMethodItem) AsWeb3Ext() string {
+	s := fmt.Sprintf(`new web3._extend.Method({
+	name: '%s',
+	call: '%s_%s',
+	params: %d,
+}),`, strcase.ToLowerCamel(i.Name),
+i.Base, strcase.ToLowerCamel(i.Name),
+i.NumParams, // -1 b/c receiver methods
+)
+	return s
+}
+
+func Discover(conf ctypes.ChainConfigurator) (items []DiscoverMethodItem) {
+	k := reflect.TypeOf(conf)
+	for i := 0; i < k.NumMethod(); i++ {
+		method := k.Method(i)
+
+		tm := method.Type // func
+
+		numIn := tm.NumIn()
+		numOut := tm.NumOut()
+		item := DiscoverMethodItem{
+			Base: "chainconfig",
+			Name: method.Name,
+			NumParams: numIn -1,
+			NumReturns: numOut,
+			Params:  nil,
+			Returns: nil,
+		}
+
+		if numIn > 0 {
+			item.Params = []DiscoverMethodParameterItem{}
+		}
+		if numOut > 0 {
+			item.Returns = []DiscoverMethodParameterItem{}
+		}
+		for i := 1; i < numIn; i++ {
+			inV := tm.In(i)
+			inKind := inV.Kind()
+			inName := inV.Name()
+			it := DiscoverMethodParameterItem{
+				Index: i,
+				Name:  inName,
+				Kind:  fmt.Sprintf("%v", inKind),
+			}
+			item.Params = append(item.Params, it)
+		}
+		for i := 0; i < numOut; i++ {
+			outV := tm.Out(i)
+			outKind := outV.Kind()
+			outName := outV.Name()
+			it := DiscoverMethodParameterItem{
+				Index: i,
+				Name:  outName,
+				Kind:  fmt.Sprintf("%v", outKind),
+			}
+			item.Returns = append(item.Returns, it)
+		}
+
+		items = append(items, item)
+	}
+	return
 }
 
 func IsValid(conf ctypes.ChainConfigurator, head *uint64) *ConfigValidError {

@@ -127,6 +127,10 @@ func Discover(conf ctypes.ChainConfigurator) (items []DiscoverMethodItem) {
 	for i := 0; i < k.NumMethod(); i++ {
 		method := k.Method(i)
 
+		if method.Name == "String" {
+			continue
+		}
+
 		tm := method.Type // func
 
 		numIn := tm.NumIn()

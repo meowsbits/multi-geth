@@ -17,37 +17,46 @@
 // package web3ext contains geth specific web3.js extensions.
 package web3ext
 
+import (
+	"fmt"
+
+	"github.com/ethereum/go-ethereum/params/confp"
+	"github.com/ethereum/go-ethereum/params/types/multigeth"
+)
+
 var Modules = map[string]string{
-	"accounting": AccountingJs,
-	"admin":      AdminJs,
-	"chequebook": ChequebookJs,
-	"clique":     CliqueJs,
-	"ethash":     EthashJs,
-	"debug":      DebugJs,
-	"eth":        EthJs,
-	"miner":      MinerJs,
-	"net":        NetJs,
-	"personal":   PersonalJs,
-	"rpc":        RpcJs,
-	"shh":        ShhJs,
-	"swarmfs":    SwarmfsJs,
-	"txpool":     TxpoolJs,
-	"les":        LESJs,
+	"accounting":  AccountingJs,
+	"admin":       AdminJs,
+	"chequebook":  ChequebookJs,
+	"clique":      CliqueJs,
+	"ethash":      EthashJs,
+	"debug":       DebugJs,
+	"eth":         EthJs,
+	"miner":       MinerJs,
+	"net":         NetJs,
+	"personal":    PersonalJs,
+	"rpc":         RpcJs,
+	"shh":         ShhJs,
+	"swarmfs":     SwarmfsJs,
+	"txpool":      TxpoolJs,
+	"les":         LESJs,
 	"chainconfig": ChainConfigJs,
 }
 
-const ChainConfigJs = `
+var ChainConfigJs = fmt.Sprintf(`
 web3._extend({
 	property: 'chainconfig',
 	methods: [
-		new web3._extend.Method({
-			name: 'getAccountStartNonce',
-			call: 'chainconfig_getAccountStartNonce',
-			params: 0,
-		}),
+		%s
 	]
 });
-`
+`, func() string {
+	var out string
+	for _, it := range confp.Discover(&multigeth.MultiGethChainConfig{}) {
+		out += fmt.Sprintln(it.AsWeb3Ext())
+	}
+	return out
+}())
 
 const ChequebookJs = `
 web3._extend({

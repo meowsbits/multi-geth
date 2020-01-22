@@ -128,6 +128,10 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateAccountAPI(apiBackend, nonceLock),
 			Public:    false,
+		}, {
+			Namespace: "chainconfig",
+			Version: "1.0",
+			Service: apiBackend.ChainConfig(),
 		},
 	}
 }

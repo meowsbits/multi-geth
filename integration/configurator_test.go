@@ -18,6 +18,7 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -44,8 +45,8 @@ func TestDiscover(t *testing.T) {
 		t.Error("no items")
 	}
 	for _, it := range items {
-		//fmt.Println(it.AsWeb3Ext())
-		t.Log(spew.Sdump(it))
+		fmt.Println(it.AsWeb3Ext())
+		//t.Log(spew.Sdump(it))
 	}
 }
 

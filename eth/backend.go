@@ -348,7 +348,7 @@ func (s *Ethereum) APIs() []rpc.API {
 		}, {
 			Namespace: "chainconfig",
 			Version:   "1.0",
-			Service:   NewPrivateChainConfigAPI(s),
+			Service:   s.blockchain.Config(),
 		},
 	}...)
 }

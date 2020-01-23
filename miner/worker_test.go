@@ -81,7 +81,7 @@ func init() {
 	testTxPoolConfig.Journal = ""
 	ethashChainConfig = params.TestChainConfig
 	cliqueChainConfig = params.TestChainConfig
-	cliqueChainConfig.MustSetConsensusEngineType(ctypes.ConsensusEngineT_Clique)
+	cliqueChainConfig.SetConsensusEngineType(ctypes.ConsensusEngineT_Clique)
 	cliqueChainConfig.SetCliquePeriod(10)
 	cliqueChainConfig.SetCliqueEpoch(30000)
 	tx1, _ := types.SignTx(types.NewTransaction(0, testUserAddress, big.NewInt(1000), vars.TxGas, nil, nil), types.HomesteadSigner{}, testBankKey)

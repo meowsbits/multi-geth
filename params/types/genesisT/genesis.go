@@ -532,8 +532,8 @@ func (g *Genesis) GetConsensusEngineType() ctypes.ConsensusEngineT {
 	return g.Config.GetConsensusEngineType()
 }
 
-func (g *Genesis) MustSetConsensusEngineType(t ctypes.ConsensusEngineT) error {
-	return g.Config.MustSetConsensusEngineType(t)
+func (g *Genesis) SetConsensusEngineType(t ctypes.ConsensusEngineT) error {
+	return g.Config.SetConsensusEngineType(t)
 }
 
 func (g *Genesis) GetEthashMinimumDifficulty() *big.Int {

@@ -392,7 +392,7 @@ func (c *ChainConfig) GetConsensusEngineType() ctypes.ConsensusEngineT {
 	return ctypes.ConsensusEngineT_Ethash
 }
 
-func (c *ChainConfig) MustSetConsensusEngineType(t ctypes.ConsensusEngineT) error {
+func (c *ChainConfig) SetConsensusEngineType(t ctypes.ConsensusEngineT) error {
 	switch t {
 	case ctypes.ConsensusEngineT_Ethash:
 		c.Ethash = new(ctypes.EthashConfig)

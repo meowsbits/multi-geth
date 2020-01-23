@@ -387,7 +387,7 @@ func (c *MultiGethChainConfig) GetConsensusEngineType() ctypes.ConsensusEngineT 
 	return ctypes.ConsensusEngineT_Unknown
 }
 
-func (c *MultiGethChainConfig) MustSetConsensusEngineType(t ctypes.ConsensusEngineT) error {
+func (c *MultiGethChainConfig) SetConsensusEngineType(t ctypes.ConsensusEngineT) error {
 	switch t {
 	case ctypes.ConsensusEngineT_Ethash:
 		c.Ethash = new(ctypes.EthashConfig)

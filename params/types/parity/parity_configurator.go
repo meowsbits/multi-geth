@@ -491,7 +491,7 @@ func (spec *ParityChainSpec) GetConsensusEngineType() ctypes.ConsensusEngineT {
 	return ctypes.ConsensusEngineT_Unknown
 }
 
-func (spec *ParityChainSpec) MustSetConsensusEngineType(t ctypes.ConsensusEngineT) error {
+func (spec *ParityChainSpec) SetConsensusEngineType(t ctypes.ConsensusEngineT) error {
 	switch t {
 	case ctypes.ConsensusEngineT_Ethash:
 		return nil

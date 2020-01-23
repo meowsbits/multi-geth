@@ -130,7 +130,7 @@ type Forker interface {
 
 type ConsensusEnginator interface {
 	GetConsensusEngineType() ConsensusEngineT
-	MustSetConsensusEngineType(t ConsensusEngineT) error
+	SetConsensusEngineType(t ConsensusEngineT) error
 	EthashConfigurator
 	CliqueConfigurator
 }

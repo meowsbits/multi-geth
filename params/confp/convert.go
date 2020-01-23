@@ -84,7 +84,7 @@ func Convert(from, to interface{}) error {
 
 	// Set consensus engine params.
 	engineType := fromChainer.GetConsensusEngineType()
-	if err := toChainer.MustSetConsensusEngineType(engineType); err != nil {
+	if err := toChainer.SetConsensusEngineType(engineType); err != nil {
 		return ctypes.UnsupportedConfigError(err, "consensus engine", engineType)
 	}
 	switch engineType {

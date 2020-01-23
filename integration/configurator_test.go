@@ -18,7 +18,6 @@ package integration
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -45,10 +44,22 @@ func TestDiscover(t *testing.T) {
 		t.Error("no items")
 	}
 	for _, it := range items {
-		fmt.Println(it.AsWeb3Ext())
-		//t.Log(spew.Sdump(it))
+		//fmt.Println(it.AsWeb3Ext())
+		t.Log(spew.Sdump(it))
 	}
 }
+
+func TestDiscoverOpenRPC(t *testing.T) {
+	tc := params.ClassicChainConfig
+	out := confp.DiscoverOpenRPC(tc)
+
+	b, err := json.MarshalIndent(out, "", "    ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	log.Println(string(b))
+}
+
 
 func TestConstantinopleEquivalence(t *testing.T) {
 	conf := tests.Forks["Constantinople"]
@@ -82,7 +93,7 @@ func TestEquivalent_Features(t *testing.T) {
 		oconf := oconf
 
 		if oconf.GetConsensusEngineType().IsUnknown() {
-			oconf.MustSetConsensusEngineType(ctypes.ConsensusEngineT_Ethash)
+			oconf.SetConsensusEngineType(ctypes.ConsensusEngineT_Ethash)
 		}
 
 		mustValidate(oconf)

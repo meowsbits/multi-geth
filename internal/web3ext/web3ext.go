@@ -19,9 +19,11 @@ package web3ext
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/ethereum/go-ethereum/params/confp"
-	"github.com/ethereum/go-ethereum/params/types/multigeth"
+	"github.com/ethereum/go-ethereum/params/confp/generic"
+	"github.com/ethereum/go-ethereum/params/types/ctypes"
 )
 
 var Modules = map[string]string{
@@ -52,7 +54,18 @@ web3._extend({
 });
 `, func() string {
 	var out string
-	for _, it := range confp.Discover(&multigeth.MultiGethChainConfig{}) {
+	blacklist := []*regexp.Regexp{
+		regexp.MustCompile(`EngineType`),
+		regexp.MustCompile(`Forked`),
+		regexp.MustCompile(`Support`),
+	}
+	outer:
+	for _, it := range confp.Discover((ctypes.ChainConfigurator)(generic.GenericCC{})) {
+		for _, r := range blacklist {
+			if r.MatchString(it.Name) {
+				continue outer
+			}
+		}
 		out += fmt.Sprintln(it.AsWeb3Ext())
 	}
 	return out

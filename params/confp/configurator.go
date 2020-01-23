@@ -25,6 +25,9 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/params/types/ctypes"
+	"github.com/fatih/camelcase"
+	"github.com/go-openapi/spec"
+	openRPCTypes "github.com/gregdhill/go-openrpc/types"
 	"github.com/iancoleman/strcase"
 )
 
@@ -97,17 +100,18 @@ func IsEmpty(anything interface{}) bool {
 }
 
 type DiscoverMethodParameterItem struct {
-	Index int
-	Name string
-	Kind string
+	Index   int
+	Name    string
+	Kind    string
+	Nilable bool
 }
 type DiscoverMethodItem struct {
-	Base string
-	Name string
-	NumParams int
+	Base       string
+	Name       string
+	NumParams  int
 	NumReturns int
-	Params []DiscoverMethodParameterItem
-	Returns []DiscoverMethodParameterItem
+	Params     []DiscoverMethodParameterItem
+	Returns    []DiscoverMethodParameterItem
 }
 
 func (i DiscoverMethodItem) AsWeb3Ext() string {
@@ -116,9 +120,9 @@ func (i DiscoverMethodItem) AsWeb3Ext() string {
 	call: '%s_%s',
 	params: %d,
 }),`, strcase.ToLowerCamel(i.Name),
-i.Base, strcase.ToLowerCamel(i.Name),
-i.NumParams, // -1 b/c receiver methods
-)
+		i.Base, strcase.ToLowerCamel(i.Name),
+		i.NumParams, // -1 b/c receiver methods
+	)
 	return s
 }
 
@@ -136,12 +140,12 @@ func Discover(conf ctypes.ChainConfigurator) (items []DiscoverMethodItem) {
 		numIn := tm.NumIn()
 		numOut := tm.NumOut()
 		item := DiscoverMethodItem{
-			Base: "chainconfig",
-			Name: method.Name,
-			NumParams: numIn -1,
+			Base:       "chainconfig",
+			Name:       method.Name,
+			NumParams:  numIn - 1,
 			NumReturns: numOut,
-			Params:  nil,
-			Returns: nil,
+			Params:     nil,
+			Returns:    nil,
 		}
 
 		if numIn > 0 {
@@ -154,10 +158,17 @@ func Discover(conf ctypes.ChainConfigurator) (items []DiscoverMethodItem) {
 			inV := tm.In(i)
 			inKind := inV.Kind()
 			inName := inV.Name()
+			nilable := false
+			if inKind == reflect.Ptr {
+				inKind = inV.Elem().Kind()
+				inName = inV.Elem().Name()
+				nilable = true
+			}
 			it := DiscoverMethodParameterItem{
-				Index: i,
-				Name:  inName,
-				Kind:  fmt.Sprintf("%v", inKind),
+				Index:   i,
+				Name:    inName,
+				Kind:    fmt.Sprintf("%v", inKind),
+				Nilable: nilable,
 			}
 			item.Params = append(item.Params, it)
 		}
@@ -165,10 +176,17 @@ func Discover(conf ctypes.ChainConfigurator) (items []DiscoverMethodItem) {
 			outV := tm.Out(i)
 			outKind := outV.Kind()
 			outName := outV.Name()
+			nilable := false
+			if outKind == reflect.Ptr {
+				outKind = outV.Elem().Kind()
+				outName = outV.Elem().Name()
+				nilable = true
+			}
 			it := DiscoverMethodParameterItem{
-				Index: i,
-				Name:  outName,
-				Kind:  fmt.Sprintf("%v", outKind),
+				Index:   i,
+				Name:    outName,
+				Kind:    fmt.Sprintf("%v", outKind),
+				Nilable: nilable,
 			}
 			item.Returns = append(item.Returns, it)
 		}
@@ -176,6 +194,82 @@ func Discover(conf ctypes.ChainConfigurator) (items []DiscoverMethodItem) {
 		items = append(items, item)
 	}
 	return
+}
+
+func DiscoverOpenRPC(conf ctypes.ChainConfigurator) (*openRPCTypes.OpenRPCSpec1) {
+	openrpcSpec := openRPCTypes.NewOpenRPCSpec1()
+	its := Discover(conf)
+	
+	for _, it := range its {
+		
+		var params = []*openRPCTypes.ContentDescriptor{}
+		for _, p := range it.Params {
+			schemaName := "blockNumber"
+			if !strings.HasSuffix(it.Name, "Transition") {
+				strs := camelcase.Split(it.Name)
+				schemaName = strs[len(strs)-1]
+				schemaName = strcase.ToLowerCamel(schemaName)
+
+			}
+			param := &openRPCTypes.ContentDescriptor{
+				Content: openRPCTypes.Content{
+					Name:        schemaName,
+					Summary:     "",
+					Description: "",
+					Required:    p.Nilable,
+					Deprecated:  false,
+					Schema:      spec.Schema{
+						SchemaProps: spec.SchemaProps{
+							Type:                 spec.StringOrArray{p.Name},
+							Title:                schemaName,
+						},
+					},
+				},
+			}
+			params = append(params, param)
+		}
+
+		var result = &openRPCTypes.ContentDescriptor{}
+		for _, r := range it.Returns {
+			if r.Name == "error" {
+				continue
+			}
+			schemaName := "blockNumber"
+			if !strings.HasSuffix(it.Name, "Transition") {
+				strs := camelcase.Split(it.Name)
+				schemaName = strs[len(strs)-1]
+				schemaName = strcase.ToLowerCamel(schemaName)
+			}
+			result.Name = schemaName
+			result.Schema = spec.Schema{
+				SchemaProps:        spec.SchemaProps{
+					Type: spec.StringOrArray{r.Name},
+					Title: schemaName,
+				},
+			}
+		}
+
+		if result.Name == "" {
+			result = nil
+		}
+		method := openRPCTypes.Method{
+			Name:           it.Name,
+			Tags:           nil,
+			Summary:        "",
+			Description:    "",
+			ExternalDocs:   openRPCTypes.ExternalDocs{},
+			Params:         params,
+			Result:         result,
+			Deprecated:     false,
+			Servers:        nil,
+			Errors:         nil,
+			Links:          nil,
+			ParamStructure: "",
+			Examples:       nil,
+		}
+		openrpcSpec.Methods = append(openrpcSpec.Methods, method)
+	}
+	return openrpcSpec
 }
 
 func IsValid(conf ctypes.ChainConfigurator, head *uint64) *ConfigValidError {

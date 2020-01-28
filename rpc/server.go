@@ -21,11 +21,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io"
+	"regexp"
+	"runtime"
+	"strings"
 	"sync/atomic"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/go-openapi/spec"
+	openRPCTypes "github.com/gregdhill/go-openrpc/types"
+	"github.com/iancoleman/strcase"
 )
 
 const MetadataApi = "rpc"
@@ -72,7 +81,11 @@ func NewServer() *Server {
 	}
 	// Register the default service providing meta information about the RPC service such
 	// as the services and methods it offers.
-	rpcService := &RPCService{server: server}
+	rpcService := &RPCService{
+		server:                   server,
+		orpcMethodParamSchemaRef: make(map[string]spec.Schema),
+		ORPCSpec:                 openRPCTypes.NewOpenRPCSpec1(),
+	}
 	server.RegisterName(MetadataApi, rpcService)
 	return server
 }
@@ -179,7 +192,10 @@ func (s *Server) Stop() {
 // RPCService gives meta information about the server.
 // e.g. gives information about the loaded modules.
 type RPCService struct {
-	server *Server
+	server                   *Server
+	orpcMethodParamSchemaRef map[string]spec.Schema
+	orpcMethodRetSchemaRef   map[string]spec.Schema
+	ORPCSpec                 *openRPCTypes.OpenRPCSpec1
 }
 
 // Modules returns the list of RPC services with their version number
@@ -254,5 +270,167 @@ func (s *RPCService) Discover() (schema *OpenRPCDiscoverSchemaT, err error) {
 		}
 	}
 	schema.Methods = schemaMethodsAvailable
+	return
+}
+
+/*
+Create a registry for openrpc items (schemas).
+Registed items will be added to a canonical OpenRPC schema in the Schemas
+list.
+A map will be maintained separate from the OpenRPC schema that will be responsible
+for knowing if a method (during registration) is qualified to reference an existing
+schema ($ref) or if it should BYOS (bring your own schema).
+This allows opt-in schema development, while still being able to provide a complete set
+of schemas for a valid OpenRPC  document.
+*/
+
+func (s *RPCService) RegisterMethodParamSchema(serviceMethodMatch string, paramKindName string, p spec.Schema) {
+
+	s.orpcMethodParamSchemaRef[fmt.Sprintf("%s-%s", serviceMethodMatch, paramKindName)] = p
+
+	if s.ORPCSpec.Components.Schemas == nil {
+		s.ORPCSpec.Components.Schemas = make(map[string]spec.Schema)
+	}
+	s.ORPCSpec.Components.Schemas[strcase.ToCamel(p.Title)] = p
+}
+
+func (s *RPCService) RegisterMethodRetSchema(serviceMethodMatch string, paramKindName string, p spec.Schema) {
+
+	s.orpcMethodRetSchemaRef[fmt.Sprintf("%s-%s", serviceMethodMatch, paramKindName)] = p
+
+	if s.ORPCSpec.Components.Schemas == nil {
+		s.ORPCSpec.Components.Schemas = make(map[string]spec.Schema)
+	}
+	s.ORPCSpec.Components.Schemas[strcase.ToCamel(p.Title)] = p
+}
+
+func (s *RPCService) RegisterSchema(serviceMethodMatch string, paramKindName string, p spec.Schema) {
+	// serviceMethodMatching will be MustParsed into a regexp, and will be
+	// used to match against subsequently registered method names.
+
+	// If service is blank, then the schema will be applied when possible,
+	// matching the "type", to all subsequent registered methods.
+	// If method is blank, then it will be applied to all services matching the
+	// supplied name.
+	// If neither are blank, then it will only be applied to methods matching the regex.
+
+	// So what is the key?
+	//
+	// => methodName + paramKindName
+
+	s.ORPCSpec.Components.Schemas[strcase.ToCamel(p.Title)] = p
+
+}
+
+func (s *RPCService) RegisterContentDescriptor(serviceMethodMatching string, paramKindName string, p openRPCTypes.ContentDescriptor) {
+	// ContentDescriptors are used to "wrap" schemas for return values.
+
+	// The same method matching pattern as described above will apply here.
+}
+
+func (s *RPCService) Discovery() (schema *openRPCTypes.OpenRPCSpec1, err error) {
+	s.server.services.mu.Lock()
+	defer s.server.services.mu.Unlock()
+
+	// These are one-offs that only need to be called once.
+	// Their job is to register information for methods that will be used in runtime schema generation.
+	// Eventually I'll move these calls to a more global spot, like 'NewServer'.
+	s.RegisterMethodParamSchema("chainconfig_.*Transition$", "*uint64", spec.Schema{
+		VendorExtensible:   spec.VendorExtensible{},
+		SchemaProps:        spec.SchemaProps{},
+		SwaggerSchemaProps: spec.SwaggerSchemaProps{},
+		ExtraProps:         nil,
+	})
+
+	// ---
+
+	for name, sss := range s.server.services.services {
+		for cname, cb := range sss.callbacks {
+			fmt.Println(name, cname, cb.fn.String(), cb.argTypes, cb.retTypes, cb.errPos)
+			fun := runtime.FuncForPC(cb.fn.Pointer())
+			file, line := fun.FileLine(fun.Entry())
+			fmt.Println("-->", fun.Name(), file, line)
+
+			fset := token.NewFileSet()
+			f, err := parser.ParseFile(fset, file, nil, parser.ParseComments)
+			if err != nil {
+				panic(err)
+			}
+
+			for _, decl := range f.Decls {
+				fn, ok := decl.(*ast.FuncDecl)
+				if !ok {
+					continue
+				}
+				if fn.Name.Name == strcase.ToCamel(cname) {
+					nnn := ""
+					for _, p := range fn.Type.Params.List {
+						for _, n := range p.Names {
+							nnn += n.Name + ","
+						}
+					}
+					fmt.Println("FOUND", fn.Name.Name, nnn)
+				} else {
+					//fmt.Println("NONMATCH", fn.Name.Name, strcase.ToCamel(cname))
+				}
+			}
+
+			orpcMethod := openRPCTypes.Method{
+				Name:           fmt.Sprintf("%s_%s", name, cname),
+				Tags:           nil,
+				Summary:        "",
+				Description:    "",
+				ExternalDocs:   openRPCTypes.ExternalDocs{},
+				Params:         nil,
+				Result:         nil,
+				Deprecated:     false,
+				Servers:        nil,
+				Errors:         nil,
+				Links:          nil,
+				ParamStructure: "",
+				Examples:       nil,
+			}
+
+
+
+			if len(cb.argTypes) > 0 {
+
+				orpcMethod.Params = []*openRPCTypes.ContentDescriptor{}
+
+				// For the range of callback parameters.
+
+				// Look up in our reference to see if there are any registered schemas
+				// that apply to this callback-parameter type case.
+				for _, paramK := range cb.argTypes {
+
+					//sch := spec.Schema{}
+
+					for k, _ := range s.orpcMethodParamSchemaRef {
+
+						split := strings.Split(k, "-")
+						schemaMatcher, paramKindName := split[0], split[1]
+
+						schemaMatcherRE := regexp.MustCompile(schemaMatcher)
+
+
+
+						if !schemaMatcherRE.MatchString(orpcMethod.Name) || paramKindName != paramK.String() {
+							continue // FIXME: still need to add the "inline" schema for the parameter
+						} else {
+
+							orpcMethod.Params = append(orpcMethod.Params, )
+						}
+
+					}
+				}
+			}
+
+
+
+			s.ORPCSpec.Methods = append(s.ORPCSpec.Methods, orpcMethod)
+		}
+
+	}
+	schema = s.ORPCSpec
 	return
 }

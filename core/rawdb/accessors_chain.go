@@ -774,6 +774,11 @@ func WriteAncientBlocks(db ethdb.AncientWriter, blocks []*types.Block, receipts 
 		tdSum      = new(big.Int).Set(td)
 		stReceipts []*types.ReceiptForStorage
 	)
+	// TODO
+	// --- Maybe:
+	// Check if the 'db' is a remote store, then we can use the original AppendAncients method and return.
+	// Possibly checking for order issues; if out of order, then Truncate and then AppendAncients.
+	// ---
 	return db.ModifyAncients(func(op ethdb.AncientWriteOp) error {
 		for i, block := range blocks {
 			// Convert receipts to storage format and sum up total difficulty.

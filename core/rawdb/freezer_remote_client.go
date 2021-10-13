@@ -99,9 +99,23 @@ func (api *FreezerRemoteClient) AppendAncient(number uint64, hash, header, body,
 	return api.client.Call(nil, FreezerMethodAppendAncient, number, hash, header, body, receipts, td)
 }
 
+type freezerBatchRemote struct {
+	api *FreezerRemoteClient
+}
+
+func (b *freezerBatchRemote) Append(kind string, num uint64, item interface{}) error {
+
+	return b.api.AppendAncient(num)
+}
+
+func (b *freezerBatchRemote) AppendRaw(kind string, num uint64, item []byte) error {
+
+}
+
 // ModifyAncients runs the given write operation.
-func (api *FreezerRemoteClient) ModifyAncients(func(ethdb.AncientWriteOp) error) (int64, error) {
-	// TODO (meowbits | ziogaschr): do we support write operations?
+func (api *FreezerRemoteClient) ModifyAncients(fn func(ethdb.AncientWriteOp) error) (int64, error) {
+	// TODO (meowsbits | ziogaschr): do we support write operations?
+
 	return 0, errNotSupported
 }
 
